@@ -53,7 +53,8 @@ inline const std::error_category& Error::get() {
 
 // Function: message
 inline std::string Error::message(int code) const {
-  switch(auto ec = static_cast<Error::Code>(code); ec) {
+  auto ec = static_cast<Error::Code>(code); 
+  switch(ec) {
     case SUCCESS:
       return "success";
     break;
@@ -92,11 +93,19 @@ namespace tf {
 
 // Procedure: throw_se
 // Throws the system error under a given error code.
-template <typename... ArgsT>
-void throw_se(const char* fname, const size_t line, Error::Code c, ArgsT&&... args) {
+template <typename T, typename... ArgsT>
+void throw_se(const char* fname, const size_t line, Error::Code c, T&& t, ArgsT&&... args) {
   std::ostringstream oss;
   oss << "[" << fname << ":" << line << "] ";
-  (oss << ... << args);
+  oss << std::forward<T>(t);
+  // Parameter pack 
+  // https://stackoverflow.com/questions/27375089/what-is-the-easiest-way-to-print-a-variadic-parameter-pack-using-stdostream
+  using expander = int[];
+  (void)expander{0, (void(oss << std::forward<ArgsT>(args)), 0)...};
+
+  // C++17
+  //(oss << ... << args);
+
   throw std::system_error(c, oss.str());
 }
 

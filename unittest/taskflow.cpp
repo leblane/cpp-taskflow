@@ -951,11 +951,13 @@ TEST_CASE("JoinedSubflow" * doctest::timeout(300)){
         }
       });
 
-      std::atomic<size_t> count = 0;
+      std::atomic<size_t> count {0};
 
       auto B = tf.emplace([&count, &data, &sum](auto& fb){
 
-        auto [src, tgt] = fb.reduce(data.begin(), data.end(), sum, std::plus<int>());
+        auto node_pair = fb.reduce(data.begin(), data.end(), sum, std::plus<int>());
+        auto& src = std::get<0>(node_pair);
+        auto& tgt = std::get<1>(node_pair);
 
         fb.emplace([&sum] () { REQUIRE(sum == 0); }).precede(src);
 
@@ -1114,13 +1116,11 @@ TEST_CASE("Composition-1" * doctest::timeout(300)) {
 
     int cnt {0};
 
-    auto [A, B, C, D, E] = f0.emplace(
-      [&cnt] () { ++cnt; },
-      [&cnt] () { ++cnt; },
-      [&cnt] () { ++cnt; },
-      [&cnt] () { ++cnt; },
-      [&cnt] () { ++cnt; }
-    );
+    auto A = f0.emplace([&cnt] () { ++cnt; } );
+    auto B = f0.emplace([&cnt] () { ++cnt; } );
+    auto C = f0.emplace([&cnt] () { ++cnt; } );
+    auto D = f0.emplace([&cnt] () { ++cnt; } );
+    auto E = f0.emplace([&cnt] () { ++cnt; } );
 
     A.precede(B);
     B.precede(C);
@@ -1183,13 +1183,11 @@ TEST_CASE("Composition-2" * doctest::timeout(300)) {
     // level 0 (+5)
     tf::Taskflow f0;
 
-    auto [A, B, C, D, E] = f0.emplace(
-      [&cnt] () { ++cnt; },
-      [&cnt] () { ++cnt; },
-      [&cnt] () { ++cnt; },
-      [&cnt] () { ++cnt; },
-      [&cnt] () { ++cnt; }
-    );
+    auto A = f0.emplace([&cnt] () { ++cnt; });
+    auto B = f0.emplace([&cnt] () { ++cnt; });
+    auto C = f0.emplace([&cnt] () { ++cnt; });
+    auto D = f0.emplace([&cnt] () { ++cnt; });
+    auto E = f0.emplace([&cnt] () { ++cnt; });
 
     A.precede(B);
     B.precede(C);
@@ -1237,10 +1235,8 @@ TEST_CASE("Composition-3" * doctest::timeout(300)) {
     // level 0 (+2)
     tf::Taskflow f0;
 
-    auto [A, B] = f0.emplace(
-      [&cnt] () { ++cnt; },
-      [&cnt] () { ++cnt; }
-    );
+    auto A = f0.emplace([&cnt] () { ++cnt; });
+    auto B = f0.emplace([&cnt] () { ++cnt; });
     A.precede(B);
 
     // level 1 (+4)

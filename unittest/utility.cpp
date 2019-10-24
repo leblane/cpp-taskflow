@@ -210,8 +210,8 @@ TEST_CASE("ObjectPool" * doctest::timeout(300)) {
   auto fork = [&] (unsigned N) {
 
     const int M = 2048 * N;
-    std::atomic<int> counter = M;
-    std::atomic<int> recycle = M;
+    std::atomic<int> counter {M};
+    std::atomic<int> recycle {M};
     std::mutex mutex;
     std::vector<std::unique_ptr<TestObject>> objects;
     std::vector<std::thread> threads; 
@@ -220,12 +220,13 @@ TEST_CASE("ObjectPool" * doctest::timeout(300)) {
     for(unsigned t=1; t<=N; ++t) {
       threads.emplace_back([&] () {
         while(1) {
-          if(int c = --counter; c < 0) {
+          int c = --counter; 
+          if(c < 0) {
             break;
           }
           else {
             auto ptr = TestObjectPool.acquire(c);
-            std::scoped_lock lock(mutex);
+            std::lock_guard<std::mutex> lock(mutex);
             objects.push_back(std::move(ptr));
           }
         }
@@ -248,11 +249,12 @@ TEST_CASE("ObjectPool" * doctest::timeout(300)) {
     for(unsigned t=1; t<=N; ++t) {
       threads.emplace_back([&] () {
         while(1) {
-          if(int r = --recycle; r < 0) {
+          int r = --recycle; 
+          if(r < 0) {
             break;
           }
           else {
-            std::scoped_lock lock(mutex);
+            std::lock_guard<std::mutex> lock(mutex);
             REQUIRE(!objects.empty());
             TestObjectPool.release(std::move(objects.back()));
             objects.pop_back();

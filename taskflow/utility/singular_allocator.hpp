@@ -110,7 +110,7 @@ struct SingularMempoolManager {
   struct Handle {
 
     Handle(SingularMempoolManager<T> &mgr) : manager {mgr} {
-      std::scoped_lock lock(mgr.mtx);
+      std::lock_guard<std::mutex> lock(mgr.mtx);
       if(mgr.pools.empty()) {
         mempool = new SingularMempool<T>();
       }
@@ -122,7 +122,7 @@ struct SingularMempoolManager {
   
     ~Handle() {
       // Return the memory pool to SingularMempoolManager
-      std::scoped_lock lock(manager.mtx);
+      std::lock_guard<std::mutex> lock(manager.mtx);
       manager.pools.emplace_back(mempool);
     }
   
@@ -137,7 +137,7 @@ struct SingularMempoolManager {
 
   // Dtor
   ~SingularMempoolManager() {
-    std::scoped_lock lock(mtx);
+    std::lock_guard<std::mutex> lock(mtx);
     for(auto& p : pools) {
       delete p;
     }

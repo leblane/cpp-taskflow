@@ -7,13 +7,11 @@ int main(){
 
   tf::Taskflow tf;
 
-  auto [A, B, C, D, E] = tf.emplace(
-    [] () { std::cout << "Task A" << std::endl; },
-    [] () { std::cout << "Task B" << std::endl; },
-    [] () { std::cout << "Task C" << std::endl; },
-    [] () { std::cout << "Task D" << std::endl; },
-    [] () { std::cout << "Task E" << std::endl; }
-  );
+  auto A = tf.emplace([] () { std::cout << "Task A" << std::endl; });
+  auto B = tf.emplace([] () { std::cout << "Task B" << std::endl; });
+  auto C = tf.emplace([] () { std::cout << "Task C" << std::endl; });
+  auto D = tf.emplace([] () { std::cout << "Task D" << std::endl; });
+  auto E = tf.emplace([] () { std::cout << "Task E" << std::endl; });
 
   A.precede(B, C, E); 
   C.precede(D);

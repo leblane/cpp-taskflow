@@ -18,8 +18,6 @@
 #include <numeric>
 #include <iomanip>
 #include <cassert>
-#include <optional>
-#include <variant>
 #include <cmath>
 
 namespace tf {
@@ -61,13 +59,17 @@ struct is_iterator {
 template <typename T>
 struct is_iterator<
   T, 
-  std::enable_if_t<!std::is_same_v<typename std::iterator_traits<T>::value_type, void>>
+  //std::enable_if_t<!std::is_same_v<typename std::iterator_traits<T>::value_type, void>>
+  std::enable_if_t<!std::is_same<typename std::iterator_traits<T>::value_type, void>::value>
 > {
   static constexpr bool value = true;
 };
 
-template <typename T>
-inline constexpr bool is_iterator_v = is_iterator<T>::value;
+//template <typename T>
+//inline constexpr bool is_iterator_v = is_iterator<T>::value;
+
+template< class... >
+using void_t = void;
 
 // Struct: is_iterable
 template <typename T, typename = void>
@@ -75,13 +77,13 @@ struct is_iterable : std::false_type {
 };
 
 template <typename T>
-struct is_iterable<T, std::void_t<decltype(std::declval<T>().begin()),
-                                  decltype(std::declval<T>().end())>>
+struct is_iterable<T, void_t<decltype(std::declval<T>().begin()),
+                             decltype(std::declval<T>().end())>>
   : std::true_type {
 };
 
-template <typename T>
-inline constexpr bool is_iterable_v = is_iterable<T>::value;
+//template <typename T>
+//inline constexpr bool is_iterable_v = is_iterable<T>::value;
 
 // Struct: MoC
 // Move-on-copy wrapper.
@@ -100,14 +102,34 @@ struct MoC {
 // Functors.
 //-----------------------------------------------------------------------------
 
-// Overloadded.
-template <typename... Ts>
-struct Functors : Ts... { 
-  using Ts::operator()... ;
-};
+//// Overloadded.
+//template <typename... Ts>
+//struct Functors : Ts... { 
+//  using Ts::operator()... ;
+//};
+//
+//template <typename... Ts>
+//Functors(Ts...) -> Functors<Ts...>;
 
-template <typename... Ts>
-Functors(Ts...) -> Functors<Ts...>;
+
+
+// https://stackoverflow.com/questions/51187974/can-stdis-invocable-be-emulated-within-c11
+template <typename F, typename... Args>
+struct is_invocable :
+    std::is_constructible<
+        std::function<void(Args ...)>,
+        std::reference_wrapper<typename std::remove_reference<F>::type>
+    >
+{};
+
+template <typename R, typename F, typename... Args>
+struct is_invocable_r :
+    std::is_constructible<
+        std::function<R(Args ...)>,
+        std::reference_wrapper<typename std::remove_reference<F>::type>
+    >
+{};
+
 
 
 }  // end of namespace tf. ---------------------------------------------------

@@ -63,7 +63,8 @@
 #include <atomic>
 #include <memory>
 #include <deque>
-#include <optional>
+//#include <optional>
+#include "../utility/optional.hpp"
 #include <thread>
 #include <algorithm>
 #include <set>
@@ -90,7 +91,7 @@ class Executor {
   struct Worker {
     std::mt19937 rdgen { std::random_device{}() };
     WorkStealingQueue<Node*> queue;
-    std::optional<Node*> cache;
+    nonstd::optional<Node*> cache;
   };
     
   struct PerThread {
@@ -237,11 +238,11 @@ class Executor {
 
     PerThread& _per_thread() const;
 
-    bool _wait_for_task(unsigned, std::optional<Node*>&);
+    bool _wait_for_task(unsigned, nonstd::optional<Node*>&);
     
     void _spawn(unsigned);
-    void _exploit_task(unsigned, std::optional<Node*>&);
-    void _explore_task(unsigned, std::optional<Node*>&);
+    void _exploit_task(unsigned, nonstd::optional<Node*>&);
+    void _explore_task(unsigned, nonstd::optional<Node*>&);
     void _schedule(Node*, bool);
     void _schedule(PassiveVector<Node*>&);
     void _schedule_unsync(Node*, std::stack<Node*>&) const;
@@ -303,7 +304,7 @@ inline void Executor::_spawn(unsigned N) {
       pt.pool = this;
       pt.worker_id = i;
     
-      std::optional<Node*> t;
+      nonstd::optional<Node*> t;
       
       // must use 1 as condition instead of !done
       while(1) {
@@ -355,7 +356,7 @@ inline unsigned Executor::_find_victim(unsigned thief) {
 }
 
 // Function: _explore_task
-inline void Executor::_explore_task(unsigned thief, std::optional<Node*>& t) {
+inline void Executor::_explore_task(unsigned thief, nonstd::optional<Node*>& t) {
   
   //assert(_workers[thief].queue.empty());
   assert(!t);
@@ -383,7 +384,8 @@ inline void Executor::_explore_task(unsigned thief, std::optional<Node*>& t) {
     }
 
     if(f++ > F) {
-      if(std::this_thread::yield(); y++ > Y) {
+      std::this_thread::yield();
+      if(y++ > Y) {
         break;
       }
     }
@@ -407,7 +409,7 @@ inline void Executor::_explore_task(unsigned thief, std::optional<Node*>& t) {
 }
 
 // Procedure: _exploit_task
-inline void Executor::_exploit_task(unsigned i, std::optional<Node*>& t) {
+inline void Executor::_exploit_task(unsigned i, nonstd::optional<Node*>& t) {
   
   assert(!_workers[i].cache);
 
@@ -421,7 +423,7 @@ inline void Executor::_exploit_task(unsigned i, std::optional<Node*>& t) {
 
       if(worker.cache) {
         t = *worker.cache;
-        worker.cache = std::nullopt;
+        worker.cache = nonstd::nullopt;
       }
       else {
         t = worker.queue.pop();
@@ -434,7 +436,7 @@ inline void Executor::_exploit_task(unsigned i, std::optional<Node*>& t) {
 }
 
 // Function: _wait_for_task
-inline bool Executor::_wait_for_task(unsigned me, std::optional<Node*>& t) {
+inline bool Executor::_wait_for_task(unsigned me, nonstd::optional<Node*>& t) {
 
   wait_for_task:
 
@@ -444,8 +446,10 @@ inline bool Executor::_wait_for_task(unsigned me, std::optional<Node*>& t) {
 
   explore_task:
 
-  if(_explore_task(me, t); t) {
-    if(auto N = _num_thieves.fetch_sub(1); N == 1) {
+  _explore_task(me, t); 
+  if(t) {
+    auto N = _num_thieves.fetch_sub(1); 
+    if(N == 1) {
       _notifier.notify(false);
     }
     return true;
@@ -458,9 +462,10 @@ inline bool Executor::_wait_for_task(unsigned me, std::optional<Node*>& t) {
 
     _notifier.cancel_wait(&_waiters[me]);
     //t = (vtm == me) ? _queue.steal() : _workers[vtm].queue.steal();
-
-    if(t = _queue.steal(); t) {
-      if(auto N = _num_thieves.fetch_sub(1); N == 1) {
+    t = _queue.steal(); 
+    if(t) {
+      auto N = _num_thieves.fetch_sub(1); 
+      if(N == 1) {
         _notifier.notify(false);
       }
       return true;
@@ -545,8 +550,9 @@ inline void Executor::_schedule(Node* node, bool bypass) {
     _init_module_node(node);
   }
   
-  // caller is a worker to this pool
-  if(auto& pt = _per_thread(); pt.pool == this) {
+  // caller is a worker to this pool 
+  auto& pt = _per_thread(); 
+  if(pt.pool == this) {
     if(!bypass) {
       _workers[pt.worker_id].queue.push(node);
     }
@@ -559,7 +565,7 @@ inline void Executor::_schedule(Node* node, bool bypass) {
 
   // other threads
   {
-    std::scoped_lock lock(_queue_mutex);
+    std::lock_guard<std::mutex> lock(_queue_mutex);
     _queue.push(node);
   }
 
@@ -587,8 +593,9 @@ inline void Executor::_schedule(PassiveVector<Node*>& nodes) {
     }
   }
 
-  // worker thread
-  if(auto& pt = _per_thread(); pt.pool == this) {
+  // worker thread 
+  auto& pt = _per_thread(); 
+  if(pt.pool == this) {
     for(size_t i=0; i<num_nodes; ++i) {
       _workers[pt.worker_id].queue.push(nodes[i]);
     }
@@ -597,20 +604,13 @@ inline void Executor::_schedule(PassiveVector<Node*>& nodes) {
   
   // other threads
   {
-    std::scoped_lock lock(_queue_mutex);
+    std::lock_guard<std::mutex> lock(_queue_mutex);
     for(size_t k=0; k<num_nodes; ++k) {
       _queue.push(nodes[k]);
     }
   }
 
-  if(num_nodes >= _workers.size()) {
-    _notifier.notify(true);
-  }
-  else {
-    for(size_t k=0; k<num_nodes; ++k) {
-      _notifier.notify(false);
-    }
-  }
+  _notifier.notify(false);
 }
 
 // Procedure: _init_module_node
@@ -694,8 +694,9 @@ inline void Executor::_invoke(unsigned me, Node* node) {
   const auto num_successors = node->num_successors();
 
   // static task
-  // The default node work type. We only need to execute the callback if any.
-  if(auto index=node->_work.index(); index == 1) {
+  // The default node work type. We only need to execute the callback if any. 
+  auto index=node->_work.index(); 
+  if(index == 1) {
     if(node->_module != nullptr) {
       bool first_time = !node->is_spawned();
       _invoke_static_work(me, node);
@@ -799,11 +800,13 @@ inline void Executor::_invoke(unsigned me, Node* node) {
 inline void Executor::_invoke_static_work(unsigned me, Node* node) {
   if(_observer) {
     _observer->on_entry(me, TaskView(node));
-    std::invoke(std::get<Node::StaticWork>(node->_work));
+    mpark::get<Node::StaticWork>(node->_work)();
+    //std::invoke(mpark::get<Node::StaticWork>(node->_work));
     _observer->on_exit(me, TaskView(node));
   }
   else {
-    std::invoke(std::get<Node::StaticWork>(node->_work));
+    mpark::get<Node::StaticWork>(node->_work)();
+    //std::invoke(mpark::get<Node::StaticWork>(node->_work));
   }
 }
 
@@ -811,11 +814,13 @@ inline void Executor::_invoke_static_work(unsigned me, Node* node) {
 inline void Executor::_invoke_dynamic_work(unsigned me, Node* node, Subflow& sf) {
   if(_observer) {
     _observer->on_entry(me, TaskView(node));
-    std::invoke(std::get<Node::DynamicWork>(node->_work), sf);
+    mpark::get<Node::DynamicWork>(node->_work)(sf);
+    //std::invoke(mpark::get<Node::DynamicWork>(node->_work), sf);
     _observer->on_exit(me, TaskView(node));
   }
   else {
-    std::invoke(std::get<Node::DynamicWork>(node->_work), sf);
+    mpark::get<Node::DynamicWork>(node->_work)(sf);
+    //std::invoke(mpark::get<Node::DynamicWork>(node->_work), sf);
   }
 }
 
@@ -824,18 +829,21 @@ inline void Executor::_invoke_unsync(Node* node, std::stack<Node*>& stack) const
 
   const auto num_successors = node->num_successors();
 
+  auto index=node->_work.index(); 
   // static task
   // The default node work type. We only need to execute the callback if any.
-  if(auto index=node->_work.index(); index == 1) {
+  if(index == 1) {
     if(node->_module != nullptr) {
       bool first_time = !node->is_spawned();
-      std::invoke(std::get<Node::StaticWork>(node->_work));
+      mpark::get<Node::StaticWork>(node->_work)();
+      //std::invoke(mpark::get<Node::StaticWork>(node->_work));
       if(first_time) {
         return ;
       }
     }
     else {
-      std::invoke(std::get<Node::StaticWork>(node->_work));
+      mpark::get<Node::StaticWork>(node->_work)();
+      //std::invoke(mpark::get<Node::StaticWork>(node->_work));
     }
   }
   // dynamic task
@@ -853,7 +861,8 @@ inline void Executor::_invoke_unsync(Node* node, std::stack<Node*>& stack) const
    
     Subflow fb(*(node->_subgraph));
 
-    std::invoke(std::get<Node::DynamicWork>(node->_work), fb);
+    mpark::get<Node::DynamicWork>(node->_work)(fb);
+    //std::invoke(mpark::get<Node::DynamicWork>(node->_work), fb);
     
     // Need to create a subflow if first time & subgraph is not empty 
     if(!node->is_spawned()) {
@@ -923,7 +932,8 @@ inline std::future<void> Executor::run(Taskflow& f) {
 // Function: run
 template <typename C>
 std::future<void> Executor::run(Taskflow& f, C&& c) {
-  static_assert(std::is_invocable<C>::value);
+  //static_assert(std::is_invocable<C>::value);
+  static_assert(is_invocable<C>::value, "Callback C must be callable");
   return run_n(f, 1, std::forward<C>(c));
 }
 
@@ -952,7 +962,8 @@ inline void Executor::_tear_down_topology(Topology* tpg) {
   //assert(&tpg == &(f._topologies.front()));
 
   // case 1: we still need to run the topology again
-  if(!std::invoke(tpg->_pred)) {
+  //if(!std::invoke(tpg->_pred)) {
+  if(!((tpg->_pred)())) {
     tpg->_recover_num_sinks();
     _schedule(tpg->_sources); 
   }
@@ -960,7 +971,8 @@ inline void Executor::_tear_down_topology(Topology* tpg) {
   else {
     
     if(tpg->_call != nullptr) {
-      std::invoke(tpg->_call);
+      tpg->_call();
+      //std::invoke(tpg->_call);
     }
 
     f._mtx.lock();
@@ -1003,12 +1015,14 @@ template <typename P, typename C>
 std::future<void> Executor::run_until(Taskflow& f, P&& pred, C&& c) {
 
   // Predicate must return a boolean value
-  static_assert(std::is_invocable_v<C> && std::is_invocable_v<P>);
+  //static_assert(std::is_invocable_v<C> && std::is_invocable_v<P>);
+  static_assert(is_invocable<C>::value && is_invocable<P>::value, "Callback C must be callable");
   
   _increment_topology();
 
   // Special case of predicate
-  if(std::invoke(pred)) {
+  //if(std::invoke(pred)) {
+  if(pred()) {
     std::promise<void> promise;
     promise.set_value();
     _decrement_topology_and_notify();
@@ -1035,10 +1049,12 @@ std::future<void> Executor::run_until(Taskflow& f, P&& pred, C&& c) {
         _invoke_unsync(node, stack);
       }
       tpg._recover_num_sinks();
-    } while(!std::invoke(tpg._pred));
+    //} while(!std::invoke(tpg._pred));
+    } while(!tpg._pred());
 
     if(tpg._call != nullptr) {
-      std::invoke(tpg._call);
+      tpg._call();
+      //std::invoke(tpg._call);
     }
 
     tpg._promise.set_value();
@@ -1054,10 +1070,11 @@ std::future<void> Executor::run_until(Taskflow& f, P&& pred, C&& c) {
   std::future<void> future;
   
   {
-    std::scoped_lock lock(f._mtx);
+    std::lock_guard<std::mutex> lock(f._mtx);
 
     // create a topology for this run
-    tpg = &(f._topologies.emplace_back(f, std::forward<P>(pred), std::forward<C>(c)));
+    f._topologies.emplace_back(f, std::forward<P>(pred), std::forward<C>(c));
+    tpg = &(f._topologies.back());
     future = tpg->_promise.get_future();
     
     if(f._topologies.size() == 1) {
@@ -1079,13 +1096,13 @@ std::future<void> Executor::run_until(Taskflow& f, P&& pred, C&& c) {
 
 // Procedure: _increment_topology
 inline void Executor::_increment_topology() {
-  std::scoped_lock lock(_topology_mutex);
+  std::lock_guard<std::mutex> lock(_topology_mutex);
   ++_num_topologies;
 }
 
 // Procedure: _decrement_topology_and_notify
 inline void Executor::_decrement_topology_and_notify() {
-  std::scoped_lock lock(_topology_mutex);
+  std::lock_guard<std::mutex> lock(_topology_mutex);
   if(--_num_topologies == 0) {
     _topology_cv.notify_all();
   }
@@ -1093,13 +1110,13 @@ inline void Executor::_decrement_topology_and_notify() {
 
 // Procedure: _decrement_topology
 inline void Executor::_decrement_topology() {
-  std::scoped_lock lock(_topology_mutex);
+  std::lock_guard<std::mutex> lock(_topology_mutex);
   --_num_topologies;
 }
 
 // Procedure: wait_for_all
 inline void Executor::wait_for_all() {
-  std::unique_lock lock(_topology_mutex);
+  std::unique_lock<std::mutex> lock(_topology_mutex);
   _topology_cv.wait(lock, [&](){ return _num_topologies == 0; });
 }
 

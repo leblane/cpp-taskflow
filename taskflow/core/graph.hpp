@@ -3,6 +3,7 @@
 #include "../error/error.hpp"
 #include "../utility/traits.hpp"
 #include "../utility/passive_vector.hpp"
+#include "../utility/variant.hpp"
 
 namespace tf {
 
@@ -99,12 +100,14 @@ class Node {
   private:
     
     std::string _name;
-    std::variant<std::monostate, StaticWork, DynamicWork> _work;
+    //std::variant<std::monostate, StaticWork, DynamicWork> _work;
+    mpark::variant<mpark::monostate, StaticWork, DynamicWork> _work;
+
 
     tf::PassiveVector<Node*> _successors;
     tf::PassiveVector<Node*> _dependents;
     
-    std::optional<Graph> _subgraph;
+    nonstd::optional<Graph> _subgraph;
 
     Topology* _topology {nullptr};
     Taskflow* _module {nullptr};
@@ -131,7 +134,8 @@ inline Node::~Node() {
     _subgraph.reset();
     size_t i = 0;
     while(i < nodes.size()) {
-      if(auto& sbg = nodes[i]->_subgraph; sbg) {
+      auto& sbg = nodes[i]->_subgraph; 
+      if(sbg) {
         std::move(
           sbg->_nodes.begin(), sbg->_nodes.end(), std::back_inserter(nodes)
         );

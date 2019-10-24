@@ -11,8 +11,8 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 # Compiler vendors
 ## g++
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "7.3")
-    message(FATAL_ERROR "\nCpp-Taskflow requires g++ at least v7.3")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.5")
+    message(FATAL_ERROR "\nCpp-Taskflow requires g++ at least v5.5")
   endif()
 ## clang++
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -27,7 +27,7 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 else()
   message(FATAL_ERROR "\n\
 Cpp-Taskflow currently supports the following compilers:\n\
-- g++ v7.3 or above\n\
+- g++ v5.5 or above\n\
 - clang++ v6.0 or above\n\
 - MSVC++ v19.14 or above\n\
 ")
@@ -109,8 +109,9 @@ target_link_libraries(
 )
 
 # CXX target properties
-#set(CMAKE_CXX_STANDARD 17)
+#set(CMAKE_CXX_STANDARD 14)
 #set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Uncomment the line below to enable c++14 instead of gnu++14
 #set(CMAKE_CXX_EXTENSIONS OFF)
 
 # build options
@@ -166,7 +167,7 @@ find_package(Threads REQUIRED)
 
 add_library(${PROJECT_NAME} INTERFACE)
 
-target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_17)
+target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_14)
 target_include_directories(${PROJECT_NAME} INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:include/> 

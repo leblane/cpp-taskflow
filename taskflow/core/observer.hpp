@@ -16,7 +16,8 @@
 #include <atomic>
 #include <memory>
 #include <deque>
-#include <optional>
+//#include <optional>
+#include "../utility/optional.hpp"
 #include <thread>
 #include <algorithm>
 #include <set>

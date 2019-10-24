@@ -31,8 +31,13 @@ class FlowBuilder {
     @return Task handle
     */
     template <typename C>
-    Task emplace(C&& callable);
+    std::enable_if_t<is_invocable<C>::value, Task> emplace(C&& c);
+    //Task emplace(C&& callable);
     
+    template <typename C>   
+    std::enable_if_t<is_invocable<C, Subflow&>::value, Task> emplace(C&& c);
+
+
     /**
     @brief creates multiple tasks from a list of callable objects at one time
     
@@ -94,7 +99,7 @@ class FlowBuilder {
 
     @return a pair of Task handles to the beginning and the end of the graph
     */
-    template <typename I, typename C, std::enable_if_t<std::is_arithmetic_v<I>, void>* = nullptr >
+    template <typename I, typename C, std::enable_if_t<std::is_arithmetic<I>::value, void>* = nullptr >
     std::pair<Task, Task> parallel_for(I beg, I end, I step, C&& callable, size_t partitions = 0);
     
     /**
@@ -340,7 +345,8 @@ std::pair<Task, Task> FlowBuilder::parallel_for(I beg, I end, C&& c, size_t p){
     size_t g = (w++ >= r) ? b - 1 : b;
     
     // Case 1: random access iterator
-    if constexpr(std::is_same_v<category, std::random_access_iterator_tag>) {
+    //if constexpr(std::is_same_v<category, std::random_access_iterator_tag>) {
+    if(std::is_same<category, std::random_access_iterator_tag>::value) {
       size_t x = std::distance(beg, end);
       std::advance(e, std::min(x, g));
     }
@@ -410,7 +416,7 @@ std::pair<Task, Task> FlowBuilder::parallel_for(I beg, I end, C&& c, size_t g) {
 template <
   typename I, 
   typename C, 
-  std::enable_if_t<std::is_arithmetic_v<I>, void>*
+  std::enable_if_t<std::is_arithmetic<I>::value, void>*
 >
 std::pair<Task, Task> FlowBuilder::parallel_for(I beg, I end, I s, C&& c, size_t p) {
 
@@ -425,7 +431,10 @@ std::pair<Task, Task> FlowBuilder::parallel_for(I beg, I end, I s, C&& c, size_t
   // compute the distance
   size_t D;
 
-  if constexpr(std::is_integral_v<T>) {
+  static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, 
+                "Indexing type must be either integral of float");
+  //if constexpr(std::is_integral_v<T>) {
+  if(std::is_integral<T>::value) {
     if(beg <= end) {  
       D = (end - beg + s - 1) / s;
     }
@@ -433,12 +442,13 @@ std::pair<Task, Task> FlowBuilder::parallel_for(I beg, I end, I s, C&& c, size_t
       D = (end - beg + s + 1) / s;
     }
   }
-  else if constexpr(std::is_floating_point_v<T>) {
+  ////else if constexpr(std::is_floating_point_v<T>) {
+  else if (std::is_floating_point<T>::value) {
     D = static_cast<size_t>(std::ceil((end - beg) / s));
   }
-  else {
-    static_assert(dependent_false_v<T>, "can't deduce distance");
-  }
+  //else {
+  //  static_assert(dependent_false_v<T>, "can't deduce distance");
+  //}
 
   // source and target 
   auto source = placeholder();
@@ -460,7 +470,8 @@ std::pair<Task, Task> FlowBuilder::parallel_for(I beg, I end, I s, C&& c, size_t
   size_t w = 0;                         // worker id
 
   // Integer indices
-  if constexpr(std::is_integral_v<T>) {
+  //if constexpr(std::is_integral_v<T>) {
+  if (std::is_integral<T>::value) {
     // positive case
     if(beg < end) {
       while(beg != end) {
@@ -495,7 +506,8 @@ std::pair<Task, Task> FlowBuilder::parallel_for(I beg, I end, I s, C&& c, size_t
     }
   }
   // We enumerate the entire sequence to avoid floating error
-  else if constexpr(std::is_floating_point_v<T>) {
+  //else if constexpr(std::is_floating_point_v<T>) {
+  else if (std::is_floating_point<T>::value) {
     size_t N = 0;
     size_t g = b;
     auto B = beg;
@@ -576,7 +588,8 @@ std::pair<Task, Task> FlowBuilder::transform_reduce(I beg, I end, T& result, B&&
     auto e = beg;
     
     // Case 1: random access iterator
-    if constexpr(std::is_same_v<category, std::random_access_iterator_tag>) {
+    //if constexpr(std::is_same<category, std::random_access_iterator_tag>::value) {
+    if (std::is_same<category, std::random_access_iterator_tag>::value) {
       size_t r = std::distance(beg, end);
       std::advance(e, std::min(r, g));
     }
@@ -601,12 +614,20 @@ std::pair<Task, Task> FlowBuilder::transform_reduce(I beg, I end, T& result, B&&
     id ++;
   }
 
+  //// target synchronizer  C++17
+  //target.work([&result, bop, res=MoC{std::move(g_results)}, w=id] () {
+  //  for(auto i=0u; i<w; i++) {
+  //    result = bop(std::move(result), res.object[i]);
+  //  }
+  //});
+
   // target synchronizer 
-  target.work([&result, bop, res=MoC{std::move(g_results)}, w=id] () {
+  target.work([&result, bop, res=MoC<std::unique_ptr<T[]>>{std::move(g_results)}, w=id] () {
     for(auto i=0u; i<w; i++) {
       result = bop(std::move(result), res.object[i]);
     }
   });
+
 
   return std::make_pair(source, target); 
 }
@@ -635,7 +656,8 @@ std::pair<Task, Task> FlowBuilder::transform_reduce(
     auto e = beg;
     
     // Case 1: random access iterator
-    if constexpr(std::is_same_v<category, std::random_access_iterator_tag>) {
+    //if constexpr(std::is_same<category, std::random_access_iterator_tag>::value) {
+    if (std::is_same<category, std::random_access_iterator_tag>::value) {
       size_t r = std::distance(beg, end);
       std::advance(e, std::min(r, g));
     }
@@ -668,7 +690,7 @@ std::pair<Task, Task> FlowBuilder::transform_reduce(
   }
 
   // target synchronizer 
-  target.work([&result, bop, g_results=MoC{std::move(g_results)}, w=id] () {
+  target.work([&result, bop, g_results=MoC<std::unique_ptr<T[]>>{std::move(g_results)}, w=id] () {
     for(auto i=0u; i<w; i++) {
       result = bop(std::move(result), std::move(g_results.object[i]));
     }
@@ -761,7 +783,8 @@ std::pair<Task, Task> FlowBuilder::reduce(I beg, I end, T& result, B&& op) {
     auto e = beg;
     
     // Case 1: random access iterator
-    if constexpr(std::is_same_v<category, std::random_access_iterator_tag>) {
+    //if constexpr(std::is_same<category, std::random_access_iterator_tag>::value) {
+    if (std::is_same<category, std::random_access_iterator_tag>::value) {
       size_t r = std::distance(beg, end);
       std::advance(e, std::min(r, g));
     }
@@ -798,7 +821,7 @@ std::pair<Task, Task> FlowBuilder::reduce(I beg, I end, T& result, B&& op) {
   //    result = op(std::move(result), fu.get());
   //  }
   //});
-  target.work([g_results=MoC{std::move(g_results)}, &result, op, w=id] () {
+  target.work([g_results=MoC<std::unique_ptr<T[]>>{std::move(g_results)}, &result, op, w=id] () {
     for(auto i=0u; i<w; i++) {
       result = op(std::move(result), g_results.object[i]);
     }
@@ -883,29 +906,56 @@ auto FlowBuilder::emplace(C&&... cs) {
   return std::make_tuple(emplace(std::forward<C>(cs))...);
 }
 
-// Function: emplace
+
+
+
 template <typename C>
-Task FlowBuilder::emplace(C&& c) {
-  // dynamic tasking
-  if constexpr(std::is_invocable_v<C, Subflow&>) {
-    auto& n = _graph.emplace_back(
-    [c=std::forward<C>(c)] (Subflow& fb) mutable {
-      // first time execution
-      if(fb._graph.empty()) {
-        c(fb);
-      }
-    });
-    return Task(n);
-  }
-  // static tasking
-  else if constexpr(std::is_invocable_v<C>) {
-    auto& n = _graph.emplace_back(std::forward<C>(c));
-    return Task(n);
-  }
-  else {
-    static_assert(dependent_false_v<C>, "invalid task work type");
-  }
+std::enable_if_t<is_invocable<C>::value, Task> FlowBuilder::emplace(C&& c) {
+  auto& n = _graph.emplace_back(std::forward<C>(c));
+  return Task(n);
 }
+
+
+template <typename C>
+std::enable_if_t<is_invocable<C, Subflow&>::value, Task> FlowBuilder::emplace(C&& c) {
+  auto& n = _graph.emplace_back(
+  [c=std::forward<C>(c)] (Subflow& fb) mutable {
+    // first time execution
+    if(fb._graph.empty()) {
+      c(fb);
+    }
+  });
+  return Task(n);
+}
+
+
+
+// C++17
+//// Function: emplace
+//template <typename C>
+//Task FlowBuilder::emplace(C&& c) {
+//  // dynamic tasking
+//  if constexpr(std::is_invocable_v<C, Subflow&>) {
+//    auto& n = _graph.emplace_back(
+//    [c=std::forward<C>(c)] (Subflow& fb) mutable {
+//      // first time execution
+//      if(fb._graph.empty()) {
+//        c(fb);
+//      }
+//    });
+//    return Task(n);
+//  }
+//  // static tasking
+//  else if constexpr(std::is_invocable_v<C>) {
+//    auto& n = _graph.emplace_back(std::forward<C>(c));
+//    return Task(n);
+//  }
+//  else {
+//    static_assert(dependent_false_v<C>, "invalid task work type");
+//  }
+//}
+
+
 
 // Function: silent_emplace
 template <typename... C, std::enable_if_t<(sizeof...(C)>1), void>*>

@@ -5,7 +5,8 @@
 
 #include <atomic>
 #include <vector>
-#include <optional>
+//#include <optional>
+#include "../utility/optional.hpp"
 
 namespace tf {
 
@@ -137,7 +138,7 @@ class WorkStealingQueue {
     Only the owner thread can pop out an item from the queue. 
     The return can be a @std_nullopt if this operation failed (empty queue).
     */
-    std::optional<T> pop();
+    nonstd::optional<T> pop();
     
     /**
     @brief steals an item from the queue
@@ -145,7 +146,7 @@ class WorkStealingQueue {
     Any threads can try to steal an item from the queue.
     The return can be a @std_nullopt if this operation failed (not necessary empty).
     */
-    std::optional<T> steal();
+    nonstd::optional<T> steal();
 };
 
 // Constructor
@@ -206,14 +207,14 @@ void WorkStealingQueue<T>::push(O&& o) {
 
 // Function: pop
 template <typename T>
-std::optional<T> WorkStealingQueue<T>::pop() {
+nonstd::optional<T> WorkStealingQueue<T>::pop() {
   int64_t b = _bottom.load(std::memory_order_relaxed) - 1;
   Array* a = _array.load(std::memory_order_relaxed);
   _bottom.store(b, std::memory_order_relaxed);
   std::atomic_thread_fence(std::memory_order_seq_cst);
   int64_t t = _top.load(std::memory_order_relaxed);
 
-  std::optional<T> item;
+  nonstd::optional<T> item;
 
   if(t <= b) {
     item = a->pop(b);
@@ -222,7 +223,7 @@ std::optional<T> WorkStealingQueue<T>::pop() {
       if(!_top.compare_exchange_strong(t, t+1, 
                                        std::memory_order_seq_cst, 
                                        std::memory_order_relaxed)) {
-        item = std::nullopt;
+        item = nonstd::nullopt;
       }
       _bottom.store(b + 1, std::memory_order_relaxed);
     }
@@ -236,12 +237,12 @@ std::optional<T> WorkStealingQueue<T>::pop() {
 
 // Function: steal
 template <typename T>
-std::optional<T> WorkStealingQueue<T>::steal() {
+nonstd::optional<T> WorkStealingQueue<T>::steal() {
   int64_t t = _top.load(std::memory_order_acquire);
   std::atomic_thread_fence(std::memory_order_seq_cst);
   int64_t b = _bottom.load(std::memory_order_acquire);
   
-  std::optional<T> item;
+  nonstd::optional<T> item;
 
   if(t < b) {
     Array* a = _array.load(std::memory_order_consume);
@@ -249,7 +250,7 @@ std::optional<T> WorkStealingQueue<T>::steal() {
     if(!_top.compare_exchange_strong(t, t+1,
                                      std::memory_order_seq_cst,
                                      std::memory_order_relaxed)) {
-      return std::nullopt;
+      return nonstd::nullopt;
     }
   }
 

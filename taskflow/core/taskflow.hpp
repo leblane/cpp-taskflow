@@ -180,9 +180,9 @@ inline void Taskflow::dump(std::ostream& os) const {
 
     // dump the details of this taskflow
     for(const auto& n : f->_graph.nodes()) {
-      
+      auto module = n->_module; 
       // regular task
-      if(auto module = n->_module; !module) {
+      if(!module) {
         n->dump(os);
       }
       // module task

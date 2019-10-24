@@ -97,8 +97,9 @@ int main(int argc, char* argv[]) {
     std::cerr << "usage: ./reduce [reduce|transform_reduce]" << std::endl;
     std::exit(EXIT_FAILURE);
   }
-  
-  if(std::string_view method(argv[1]); method == "reduce") {
+
+  std::string method(argv[1]); 
+  if(method == "reduce") {
     reduce();
   }
   else if(method == "transform_reduce") {

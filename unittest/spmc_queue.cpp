@@ -95,7 +95,8 @@ void wsq_test_owner() {
 
     for(int j=0; j<i; ++j) {
       // enqueue 
-      if(auto dice = ::rand()%3; dice == 0) {
+      auto dice = ::rand()%3; 
+      if(dice == 0) {
         queue.push(j);
         gold.push_back(j);
       }
@@ -168,8 +169,10 @@ void wsq_test_n_thieves(int N) {
     for(int n=0; n<N; n++) {
       consumers.emplace_back([&, n] () {
         while(num_stolen() + (int)pdeq.size() != i) {
-          if(auto dice = ::rand() % 4; dice == 0) {
-            if(auto item = queue.steal(); item) {
+          auto dice = ::rand() % 4; 
+          if(dice == 0) {
+            auto item = queue.steal(); 
+            if(item) {
               cdeqs[n].push_back(*item);
             }
           }
@@ -179,11 +182,13 @@ void wsq_test_n_thieves(int N) {
 
     std::thread producer([&] () {
       while(p < i) { 
-        if(auto dice = ::rand() % 4; dice == 0) {
+        auto dice = ::rand() % 4;
+        if(dice == 0) {
           queue.push(p++); 
         }
         else if(dice == 1) {
-          if(auto item = queue.pop(); item) {
+          auto item = queue.pop(); 
+          if(item) {
             pdeq.push_back(*item);
           }
         }

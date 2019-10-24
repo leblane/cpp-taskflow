@@ -115,7 +115,7 @@ int main(){
 Compile and run the code with the following commands:
 
 ```bash
-~$ g++ simple.cpp -std=c++1z -O2 -lpthread -o simple
+~$ g++ simple.cpp -std=c++1y -O2 -lpthread -o simple
 ~$ ./simple
 TaskA
 TaskC  <-- concurrent with TaskB

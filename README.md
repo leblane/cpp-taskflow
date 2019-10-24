@@ -174,8 +174,10 @@ Use the method `emplace` to create a task:
 tf::Task A = taskflow.emplace([](){ std::cout << "Task A\n"; });
 ```
 
-You can create multiple tasks at one time:
 
+:warning: Note creating multiple tasks at one time is not supported in C++14 version. 
+
+You can create multiple tasks at one time:
 ```cpp
 auto [A, B, C, D] = taskflow.emplace(
   [] () { std::cout << "Task A\n"; },

@@ -3,7 +3,7 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/bb04cb8e4aca401b8206c054e79fd5e3)](https://app.codacy.com/app/tsung-wei-huang/cpp-taskflow?utm_source=github.com&utm_medium=referral&utm_content=cpp-taskflow/cpp-taskflow&utm_campaign=Badge_Grade_Dashboard)
 [![Linux Build Status](https://travis-ci.com/cpp-taskflow/cpp-taskflow.svg?branch=master)](https://travis-ci.com/cpp-taskflow/cpp-taskflow)
 [![Windows Build status](https://ci.appveyor.com/api/projects/status/te9bjp4yfhq7f8hq?svg=true)](https://ci.appveyor.com/project/TsungWeiHuang/cpp-taskflow)
-[![Standard](image/cpp14.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
+[![Standard](image/cpp17.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
 [![Download](image/download.svg)](https://github.com/cpp-taskflow/cpp-taskflow/archive/master.zip)
 [![Wiki](image/api-doc.svg)][wiki]
 [![Cite](image/cite-ipdps.svg)](doxygen/reference/ipdps19.pdf)
@@ -90,24 +90,24 @@ you need in most applications.
 #include <taskflow/taskflow.hpp>  // Cpp-Taskflow is header-only
 
 int main(){
-  
+
   tf::Executor executor;
   tf::Taskflow taskflow;
-
-  auto [A, B, C, D] = taskflow.emplace(
-    [] () { std::cout << "TaskA\n"; },               //  task dependency graph
-    [] () { std::cout << "TaskB\n"; },               // 
-    [] () { std::cout << "TaskC\n"; },               //          +---+          
-    [] () { std::cout << "TaskD\n"; }                //    +---->| B |-----+   
-  );                                                 //    |     +---+     |
-                                                     //  +---+           +-v-+ 
-  A.precede(B);  // A runs before B                  //  | A |           | D | 
-  A.precede(C);  // A runs before C                  //  +---+           +-^-+ 
-  B.precede(D);  // B runs before D                  //    |     +---+     |    
-  C.precede(D);  // C runs before D                  //    +---->| C |-----+    
-                                                     //          +---+          
-  executor.run(taskflow).wait();
-
+  
+  auto A = taskflow.emplace([](){ std::cout << "TaskA\n"; });
+  auto B = taskflow.emplace([](){ std::cout << "TaskA\n"; });
+  auto C = taskflow.emplace([](){ std::cout << "TaskA\n"; });
+  auto D = taskflow.emplace([](){ std::cout << "TaskA\n"; });
+                                        
+  A.precede(B);  // B runs after A       //          +---+                                                 
+  A.precede(C);  // C runs after A       //    +---->| B |-----+            
+  B.precede(D);  // D runs after B       //    |     +---+     |            
+  C.precede(D);  // D runs after C       //  +---+           +-v-+          
+                                         //  | A |           | D |          
+  executor.run(taskflow).wait();         //  +---+           +-^-+          
+                                         //    |     +---+     |            
+                                         //    +---->| C |-----+            
+                                         //          +---+
   return 0;
 }
 ```

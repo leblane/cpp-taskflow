@@ -11,8 +11,8 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 # Compiler vendors
 ## g++
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.5")
-    message(FATAL_ERROR "\nCpp-Taskflow requires g++ at least v5.5")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.3")
+    message(FATAL_ERROR "\nCpp-Taskflow requires g++ at least v5.3")
   endif()
 ## clang++
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

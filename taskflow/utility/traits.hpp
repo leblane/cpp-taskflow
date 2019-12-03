@@ -47,8 +47,9 @@ struct dependent_false {
   static constexpr bool value = false; 
 };
 
-template <typename... T>
-constexpr auto dependent_false_v = dependent_false<T...>::value;
+// This cannot be compiled on GCC-4.9
+//template <typename... T>
+//constexpr auto dependent_false_v = dependent_false<T...>::value;
 
 // Struct: is_iterator
 template <typename T, typename = void>

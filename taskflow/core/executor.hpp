@@ -616,7 +616,7 @@ inline void Executor::_schedule(PassiveVector<Node*>& nodes) {
 // Procedure: _init_module_node
 inline void Executor::_init_module_node(Node* node) {
 
-  node->_work = [node=node, this, tgt{PassiveVector<Node*>()}] () mutable {
+  node->_work = [node=node, this, tgt(PassiveVector<Node*>())] () mutable {
 
     // second time to enter this context
     if(node->is_spawned()) {
@@ -653,7 +653,7 @@ inline void Executor::_init_module_node_unsync(
   std::stack<Node*>& stack
 ) const {
 
-  node->_work = [this, node=node, &stack, tgt{PassiveVector<Node*>()}] () mutable {
+  node->_work = [this, node=node, &stack, tgt(PassiveVector<Node*>())] () mutable {
 
     // second time to enter this context
     if(node->is_spawned()) {
@@ -996,7 +996,7 @@ inline void Executor::_tear_down_topology(Topology* tpg) {
 
       // Need to back up the promise first here becuz taskflow might be 
       // destroy before taskflow leaves
-      auto p {std::move(tpg->_promise)};
+      auto p (std::move(tpg->_promise));
 
       f._topologies.pop_front();
 

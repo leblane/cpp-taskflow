@@ -155,6 +155,13 @@ class Executor {
     */
     void remove_observer();
 
+    /**
+    @brief get the worker id for the current thread
+    
+    @return current thread worker id
+    */
+    int get_worker_id() const;
+
   private:
    
     std::condition_variable _topology_cv;
@@ -231,6 +238,10 @@ inline size_t Executor::num_workers() const {
 inline Executor::PerThread& Executor::_per_thread() const {
   thread_local PerThread pt;
   return pt;
+}
+
+inline int Executor::get_worker_id() const {
+  return _per_thread().worker_id;
 }
 
 // Procedure: _spawn

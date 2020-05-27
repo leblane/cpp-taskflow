@@ -16,7 +16,7 @@ parallel decomposition strategies using task-based approaches.
 @subsection GeneralQuestion2 Q2: How do I use Cpp-Taskflow in my projects?
 
 Cpp-Taskflow is a header-only library with zero dependencies. 
-The only thing you need is a C++17 compiler.
+The only thing you need is a C++14 compiler.
 To use Cpp-Taskflow, simply drop the folder @c taskflow/
 to your project and include taskflow.hpp.
 
@@ -39,9 +39,9 @@ Each task has a method tf::Task::name(const std::string&) for user to assign a h
 to ease the debugging process. If a task is not assigned a name or is an internal node,
 its address value in the memory is used instead.
 
-@subsection GeneralQuestion6 Q6: Does Cpp-Taskflow have backward compatibility with C++03/11/14?
+@subsection GeneralQuestion6 Q6: Does Cpp-Taskflow have backward compatibility with C++03/98/11?
 
-Unfortunately, Cpp-Taskflow is heavily relying on modern C++17's features/idoms/STL 
+Unfortunately, Cpp-Taskflow is heavily relying on modern C++14's features/idoms/STL 
 and it is very difficult to provide a version that compiles under older C++ versions.
 
 @subsection GeneralQuestion7 Q7: How does Cpp-Taskflow schedule tasks?
@@ -49,7 +49,42 @@ and it is very difficult to provide a version that compiles under older C++ vers
 Cpp-Taskflow implemented a very efficient 
 <a href="https://en.wikipedia.org/wiki/Work_stealing">work-stealing scheduler</a> 
 to execute task dependency graphs.
-You can find the source code at @c taskflow/core/executor.hpp
+The source code is available at @c taskflow/core/executor.hpp.
+
+@subsection GeneralQuestion8 Q8: What is the overhead of taskflow?
+
+Creating a taskflow has certain overhead. For example, creating a task and a dependency 
+takes about 61 and 14 nanoseconds in our system (Intel 4-core CPU at 2.00GHz).
+The time is amortized over 1M operations, since we have implemented an object pool 
+to recycle tasks for minimal overhead.
+
+@subsection GeneralQuestion9 Q9: How does it compare to existing task programming systems?
+
+There is a large amount of work on programming systems (e.g., StarPU, Intel TBB, OpenMP, PaRSEC, Kokkos, HPX) in the interest of simplifying the 
+programming complexity of parallel and heterogeneous computing. 
+Each of these systems has its own pros and cons and deserves a reason to exist.
+However, they do have some problems, particularly from the standpoint of ease of use, 
+static control flow, and scheduling efficiency.
+Cpp-Taskflow addresses these limitations through a simple, expressive, and transparent
+graph programming model.
+
+@subsection GeneralQuestion10 Q10: Do you try to simplify the GPU kernel programming?
+
+No, we do not develop new programming models to simplify the kernel programming.
+The rationale is simple: Writing efficient kernels requires domain-specific knowledge 
+and developers often require direct access to the native GPU programming interface.
+High-level kernel programming models or abstractions all come with restricted applicability.
+Despite non-trivial kernel programming, we believe what makes heterogeneous computing difficult
+are surrounding tasks.
+A mistake made by task scheduling can outweigh all speed-up benefits from a highly optimized kernel.
+Therefore, Cpp-Taskflow focuses on heterogeneous tasking 
+that affects the overall system performance to a large extent.
+
+@subsection GeneralQuestion11 Q11: Do you have any real use cases?
+
+We have applied Cpp-Taskflow to solve many realistic workloads and demonstrated promising
+performance scalability and programming productivity. Please refer to @ref usecases
+and @ref References.
 
 ----
 
@@ -61,14 +96,7 @@ You can find the source code at @c taskflow/core/executor.hpp
 The master thread owns the thread pool and can spawn workers to run tasks 
 or shutdown the pool. 
 Giving taskflow @c N threads means using @c N threads to do the works, 
-and there is a total of @c N+1 threads (including the master threads) in the program.
-
-@code{.cpp}
-tf::Executor(N);    // N workers, N+1 threads in the program.
-@endcode
-
-If there is no worker threads in the pool, 
-the master thread will do all the works by itself.
+and there is a total of @c N+1 threads (including the master thread) in the program.
 Please refer to @ref C2_CreateAnExecutor for more details.
 
 @subsection ProgrammingQuestions2 Q2: What is the Lifetime of a Task and a Graph?
@@ -79,8 +107,7 @@ Please refer to @ref C1_LifetimeOfATask for more details.
 
 @subsection ProgrammingQuestions3 Q3: Is taskflow thread-safe?
 
-No, the taskflow object is not thread-safe. You can't create tasks from multiple threads
-at the same time.
+No, the taskflow object is not thread-safe. Multiple threads cannot create tasks from the same taskflow at the same time.
 
 @subsection ProgrammingQuestions4 Q4: Is executor thread-safe?
 
@@ -89,7 +116,8 @@ You can have multiple threads run their taskflows on one executor.
 
 @subsection ProgrammingQuestions5 Q5: My program hangs and never returns after dispatching a taskflow graph. What's wrong?
 
-When the program hangs forever it is very likely your taskflow graph has a cycle.
+When the program hangs forever it is very likely your taskflow graph has a cycle or 
+not properly conditioned (see @ref chapter4).
 Try the tf::Taskflow::dump method to debug the graph before dispatching your taskflow graph.
 
 

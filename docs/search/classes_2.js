@@ -7,6 +7,7 @@ var searchData=
   ['char_5ftraits',['char_traits',['http://en.cppreference.com/w/cpp/string/char_traits.html',1,'std']]],
   ['char_5ftype',['char_type',['http://en.cppreference.com/w/cpp/locale/collate.html',1,'std::collate_byname::char_type'],['http://en.cppreference.com/w/cpp/locale/money_get.html',1,'std::money_get::char_type'],['http://en.cppreference.com/w/cpp/locale/num_get.html',1,'std::num_get::char_type'],['http://en.cppreference.com/w/cpp/locale/numpunct.html',1,'std::numpunct_byname::char_type'],['http://en.cppreference.com/w/cpp/locale/moneypunct.html',1,'std::moneypunct_byname::char_type'],['http://en.cppreference.com/w/cpp/locale/numpunct.html',1,'std::numpunct::char_type'],['http://en.cppreference.com/w/cpp/locale/money_put.html',1,'std::money_put::char_type'],['http://en.cppreference.com/w/cpp/locale/messages.html',1,'std::messages_byname::char_type'],['http://en.cppreference.com/w/cpp/locale/time_get.html',1,'std::time_get_byname::char_type'],['http://en.cppreference.com/w/cpp/locale/time_put.html',1,'std::time_put::char_type'],['http://en.cppreference.com/w/cpp/locale/time_put.html',1,'std::time_put_byname::char_type'],['http://en.cppreference.com/w/cpp/locale/time_get.html',1,'std::time_get::char_type'],['http://en.cppreference.com/w/cpp/locale/moneypunct.html',1,'std::moneypunct::char_type'],['http://en.cppreference.com/w/cpp/locale/collate.html',1,'std::collate::char_type'],['http://en.cppreference.com/w/cpp/locale/num_put.html',1,'std::num_put::char_type'],['http://en.cppreference.com/w/cpp/locale/messages.html',1,'std::messages::char_type']]],
   ['chi_5fsquared_5fdistribution',['chi_squared_distribution',['http://en.cppreference.com/w/cpp/numeric/random/chi_squared_distribution.html',1,'std']]],
+  ['chrometracingobserver',['ChromeTracingObserver',['../classtf_1_1ChromeTracingObserver.html',1,'tf']]],
   ['cin',['cin',['http://en.cppreference.com/w/cpp/io/basic_istream.html',1,'std']]],
   ['clock_5ft',['clock_t',['http://en.cppreference.com/w/cpp/chrono/c/clock_t.html',1,'std']]],
   ['clog',['clog',['http://en.cppreference.com/w/cpp/io/basic_ostream.html',1,'std']]],
@@ -30,5 +31,7 @@ var searchData=
   ['csub_5fmatch',['csub_match',['http://en.cppreference.com/w/cpp/regex/sub_match.html',1,'std']]],
   ['ctype',['ctype',['http://en.cppreference.com/w/cpp/locale/ctype.html',1,'std']]],
   ['ctype_5fbase',['ctype_base',['http://en.cppreference.com/w/cpp/locale/ctype_base.html',1,'std']]],
-  ['ctype_5fbyname',['ctype_byname',['http://en.cppreference.com/w/cpp/locale/ctype_byname.html',1,'std']]]
+  ['ctype_5fbyname',['ctype_byname',['http://en.cppreference.com/w/cpp/locale/ctype_byname.html',1,'std']]],
+  ['cudaflow',['cudaFlow',['../classtf_1_1cudaFlow.html',1,'tf']]],
+  ['cudatask',['cudaTask',['../classtf_1_1cudaTask.html',1,'tf']]]
 ];
